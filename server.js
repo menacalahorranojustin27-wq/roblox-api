@@ -28,16 +28,16 @@ app.get("/getpasses", async (req, res) => {
                 // --- TRUCO DE VELOCIDAD: Preguntamos todos los precios A LA VEZ ---
                 const promesasPrecios = passesData.gamePasses.map(async (item) => {
                     try {
-                        const ecoRes = await fetch(`https://economy.roproxy.com/v1/game-pass/${item.id}/game-pass-product-info`);
+                        const ecoRes = await fetch(`https://apis.roproxy.com/marketplace/productinfo?assetId=${item.id}`);
                         const ecoData = await ecoRes.json();
-                        
+                        console.log("Respuesta economía:", ecoData);
                         const price =
                             ecoData.PriceInRobux ??
                             ecoData.priceInRobux ??
                             item.price ??
                             item.priceInRobux ??
                             0;
-                        console.log("Respuesta economía:", ecoData);
+                        
                         return {
                             id: item.id,
                             name: item.name,
@@ -45,10 +45,11 @@ app.get("/getpasses", async (req, res) => {
                             productId: item.productId,
                             isForSale: ecoData.IsForSale ?? item.isForSale ?? false
                         };
-                    } catch (e) {
-                        return null; // Si uno falla, lo ignoramos
-                    }
-                });
+    } catch (e) {
+        console.error("Error con pase:", item.id, e);
+        return null;
+    }
+});
 
                 // Esperamos a que todas las preguntas de precios terminen juntas
                 const resultados = await Promise.all(promesasPrecios);
