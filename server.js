@@ -20,25 +20,18 @@ app.get("/getpasses", async (req, res) => {
 
         // 2. Recorrer los juegos para buscar pases con la NUEVA API
 // 2. Recorrer los juegos para buscar pases
-        for (const game of gamesData.data) {
-            const universeId = game.id;
-
-            const passesRes = await fetch(`https://apis.roproxy.com/game-passes/v1/universes/${universeId}/game-passes?pageSize=100`);
-            const passesData = await passesRes.json();
-
-            if (passesData.gamePasses && passesData.gamePasses.length > 0) {
+if (passesData.gamePasses && passesData.gamePasses.length > 0) {
                 const passes = passesData.gamePasses.map(item => ({
                     id: item.id,
                     name: item.name,
-                    // Si 'price' es null o no existe, ponemos 0
-                    price: item.price,
+                    // Si 'price' viene vacío, probamos con 'priceInRobux'
+                    price: item.price !== null ? item.price : (item.priceInRobux || 0),
                     productId: item.productId,
                     isForSale: item.isForSale
                 }));
 
                 allPasses = allPasses.concat(passes);
             }
-        }
 
         res.json(allPasses);
 
