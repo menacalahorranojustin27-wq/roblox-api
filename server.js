@@ -5,63 +5,48 @@ const app = express();
 
 app.get("/getpasses", async (req, res) => {
     const userId = req.query.userId;
-    if (!userId) return res.json({ error: "Falta el userId en la URL" });
+    if (!userId) return res.json({ error: "Falta el userId" });
 
     try {
-        // 1. Obtener juegos usando RoProxy
+        // 1. Obtener los juegos del usuario (Esta API sigue funcionando igual)
         const gamesRes = await fetch(`https://games.roproxy.com/v2/users/${userId}/games?accessFilter=Public&limit=10`);
         const gamesData = await gamesRes.json();
 
         if (!gamesData.data || gamesData.data.length === 0) {
-            return res.json({ 
-                status: "Error", 
-                message: "Roblox no devolvió juegos. ¿Tu inventario es público?",
-                debug_roblox_response: gamesData 
-            });
+            return res.json([]);
         }
 
         let allPasses = [];
-        let logDeBusqueda = [];
 
-        // 2. Recorrer juegos
+        // 2. Recorrer los juegos para buscar pases con la NUEVA API
         for (const game of gamesData.data) {
-            const universeId = game.id; // El ID que pasaste antes
-            
-            const passesRes = await fetch(`https://games.roproxy.com/v1/games/${universeId}/game-passes?limit=100`);
+            const universeId = game.id;
+
+            // CAMBIO IMPORTANTE: Nueva URL de apis.roblox.com y parámetro pageSize
+            const passesRes = await fetch(`https://apis.roproxy.com/game-passes/v1/universes/${universeId}/game-passes?pageSize=100`);
             const passesData = await passesRes.json();
 
-            logDeBusqueda.push({
-                juego: game.name,
-                universeId: universeId,
-                pasesEncontrados: passesData.data ? passesData.data.length : 0
-            });
-
-            if (passesData.data && passesData.data.length > 0) {
-                const passes = passesData.data.map(item => ({
+            // La nueva API devuelve "gamePasses" en lugar de "data"
+            if (passesData.gamePasses && passesData.gamePasses.length > 0) {
+                const passes = passesData.gamePasses.map(item => ({
                     id: item.id,
                     name: item.name,
                     price: item.price || 0,
-                    image: item.iconId // Por si quieres mostrar la imagen después
+                    productId: item.productId,
+                    icon: item.iconId
                 }));
+
                 allPasses = allPasses.concat(passes);
             }
-        }
-
-        // Si sigue vacío, te mostrará el log de qué intentó buscar
-        if (allPasses.length === 0) {
-            return res.json({
-                status: "Vacio",
-                message: "Se encontraron juegos pero ningún pase dentro de ellos.",
-                intentos: logDeBusqueda
-            });
         }
 
         res.json(allPasses);
 
     } catch (err) {
-        res.status(500).json({ error: "Error interno", detalle: err.message });
+        console.error("Error detectado:", err);
+        res.status(500).json({ error: "Error en la conexión con Roblox" });
     }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Servidor corriendo"));
+app.listen(PORT, () => console.log("Servidor activo en puerto " + PORT));
