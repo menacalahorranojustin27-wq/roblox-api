@@ -3,34 +3,37 @@ const fetch = require("node-fetch");
 
 const app = express();
 
-app.get("/", (req, res) => {
-    res.send("API Roblox funcionando 🚀");
-});
-
 app.get("/getpasses", async (req, res) => {
     const userId = req.query.userId;
-
-    if (!userId) return res.json({ error: "Falta el userId" });
+    if (!userId) return res.json({ error: "No userId provided" });
 
     try {
-        // 1. Obtener juegos del usuario
-        const gamesRes = await fetch(`https://games.roblox.com/v2/users/${userId}/games?accessFilter=Public&limit=10`);
+        // 1. Obtener juegos
+        const gamesRes = await fetch(`https://games.roblox.com/v2/users/${userId}/games?accessFilter=Public&limit=10`, {
+            headers: { 'User-Agent': 'Mozilla/5.0' } // Engañamos un poco a la API
+        });
         const gamesData = await gamesRes.json();
 
         if (!gamesData.data || gamesData.data.length === 0) {
-            return res.json([]);
+            return res.json({ message: "No se encontraron juegos públicos", debug: gamesData });
         }
 
         let allPasses = [];
 
-        // 2. Recorrer los juegos usando universeId
         for (const game of gamesData.data) {
-            // CAMBIO CLAVE: Usamos game.universeId en lugar de game.id
-            const universeId = game.universeId; 
+            // Según tu JSON, el Universe ID es 'id'
+            const universeId = game.id; 
 
-            if (!universeId) continue;
+            const passesRes = await fetch(`https://games.roblox.com/v1/games/${universeId}/game-passes?limit=100`, {
+                headers: { 'User-Agent': 'Mozilla/5.0' }
+            });
 
-            const passesRes = await fetch(`https://games.roblox.com/v1/games/${universeId}/game-passes?limit=100`);
+            // Si Roblox nos bloquea, esto nos avisará en la consola de Render
+            if (passesRes.status === 403) {
+                console.log(`Bloqueo 403 de Roblox en el juego ${universeId}`);
+                continue;
+            }
+
             const passesData = await passesRes.json();
 
             if (passesData.data && passesData.data.length > 0) {
@@ -38,9 +41,8 @@ app.get("/getpasses", async (req, res) => {
                     id: item.id,
                     name: item.name,
                     price: item.price || 0,
-                    productId: item.productId // Útil por si necesitas procesar la compra
+                    seller: game.name // Para saber de qué juego es cada pase
                 }));
-
                 allPasses = allPasses.concat(passes);
             }
         }
@@ -48,12 +50,10 @@ app.get("/getpasses", async (req, res) => {
         res.json(allPasses);
 
     } catch (err) {
-        console.error("Error en la petición:", err);
-        res.status(500).json({ error: "Error interno del servidor" });
+        console.error("Error crítico:", err);
+        res.status(500).json({ error: "Error en el servidor", details: err.message });
     }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log("API corriendo en puerto " + PORT);
-});
+app.listen(PORT, () => console.log("Servidor listo"));
