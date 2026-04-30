@@ -12,56 +12,26 @@ app.get("/", (req, res) => {
 app.get("/getpasses", async (req, res) => {
     const userId = req.query.userId;
 
-    if (!userId) {
-        return res.json({ error: "Falta userId" });
-    }
+    if (!userId) return res.json([]);
 
     try {
-        let passes = [];
+        const url = `https://catalog.roblox.com/v1/search/items/details?Category=3&CreatorId=${userId}&AssetType=Pass&Limit=30`;
 
-        // 🔥 Obtener juegos del usuario
-        const gamesRes = await fetch(
-            `https://games.roblox.com/v2/users/${userId}/games?accessFilter=Public&limit=50`
-        );
+        const response = await fetch(url);
+        const data = await response.json();
 
-        const gamesData = await gamesRes.json();
+        if (!data || !data.data) return res.json([]);
 
-        if (!gamesData || !gamesData.data || gamesData.data.length === 0) {
-            return res.json([]);
-        }
-
-        // 🔥 Recorrer juegos
-        for (const game of gamesData.data) {
-
-            const placeId = game.rootPlaceId;
-            if (!placeId) continue;
-
-            try {
-                const passRes = await fetch(
-                    `https://games.roblox.com/v1/games/${placeId}/game-passes?limit=50`
-                );
-
-                const passData = await passRes.json();
-
-                if (!passData || !passData.data) continue;
-
-                for (const pass of passData.data) {
-                    passes.push({
-                        id: pass.id,
-                        name: pass.name,
-                        price: pass.price || 0
-                    });
-                }
-
-            } catch (innerErr) {
-                console.log("Error gamepasses:", innerErr.message);
-            }
-        }
+        const passes = data.data.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price
+        }));
 
         res.json(passes);
 
     } catch (err) {
-        console.log("ERROR GENERAL:", err.message);
+        console.log(err);
         res.json([]);
     }
 });
