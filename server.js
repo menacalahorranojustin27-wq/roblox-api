@@ -31,7 +31,7 @@ app.get("/getpasses", async (req, res) => {
                     id: item.id,
                     name: item.name,
                     // Si 'price' es null o no existe, ponemos 0
-                    price: item.price || 0,
+                    price: item.price,
                     productId: item.productId,
                     isForSale: item.isForSale
                 }));
