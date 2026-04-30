@@ -14,7 +14,7 @@ app.get("/getpasses", async (req, res) => {
 
     try {
         // 1. obtener juegos del usuario
-        const gamesRes = await fetch(`https://games.roblox.com/v2/users/${userId}/games?accessFilter=Public&limit=10`);
+        const gamesRes = await fetch(`https://games.roblox.com/v2/users/{userId}/games?accessFilter=Private&limit=50`);
         const gamesData = await gamesRes.json();
 
         if (!gamesData.data || gamesData.data.length === 0) {
