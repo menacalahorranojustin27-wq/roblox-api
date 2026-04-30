@@ -25,18 +25,19 @@ app.get("/getpasses", async (req, res) => {
 
             const passesRes = await fetch(`https://apis.roproxy.com/game-passes/v1/universes/${universeId}/game-passes?pageSize=100`);
             const passesData = await passesRes.json();
-            if (passesData.gamePasses && passesData.gamePasses.length > 0) {
-                const passes = passesData.gamePasses.map(item => ({
+if (passesData.gamePasses && passesData.gamePasses.length > 0) {
+                const pasesMapeados = passesData.gamePasses.map(item => ({
                     id: item.id,
                     name: item.name,
-                    // Si 'price' viene vacío, probamos con 'priceInRobux'
-                    price: item.price !== null ? item.price : (item.priceInRobux || 0),
+                    // Roblox a veces usa 'price' y otras 'priceInRobux'
+                    price: item.price || item.priceInRobux || 0, 
                     productId: item.productId,
                     isForSale: item.isForSale
                 }));
 
-                allPasses = allPasses.concat(passes);
+                allPasses = allPasses.concat(pasesMapeados);
             }
+        } // Este cierra el "for" de los juegos
 
         res.json(allPasses);
 
