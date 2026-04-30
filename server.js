@@ -19,36 +19,44 @@ app.get("/getpasses", async (req, res) => {
         let allPasses = [];
 
         // 2. Recorrer los juegos para buscar pases con la NUEVA API
-// 2. Recorrer los juegos para buscar pases
-        for (const game of gamesData.data) {
+for (const game of gamesData.data) {
             const universeId = game.id;
 
+            // 1. Obtenemos la lista de pases (esto ya te funciona)
             const passesRes = await fetch(`https://apis.roproxy.com/game-passes/v1/universes/${universeId}/game-passes?pageSize=100`);
             const passesData = await passesRes.json();
 
             if (passesData && passesData.gamePasses) {
-                const pasesMapeados = passesData.gamePasses.map(item => {
-                    // Roblox es caprichoso: a veces es 'price', a veces 'priceInRobux'
-                    // Aquí buscamos en ambos campos y nos aseguramos de que no sea null
-                    let valorPrecio = 0;
-                    
-                    if (item.price !== null && item.price !== undefined && item.price > 0) {
-                        valorPrecio = item.price;
-                    } else if (item.priceInRobux !== null && item.priceInRobux !== undefined) {
-                        valorPrecio = item.priceInRobux;
-                    }
+                // 2. Para cada pase, vamos a "forzar" la lectura del precio real
+                const pasesConPrecioReal = await Promise.all(passesData.gamePasses.map(async (item) => {
+                    try {
+                        // Consultamos la API de economía individual (la que no miente con el precio)
+                        const detailRes = await fetch(`https://economy.roproxy.com/v1/game-pass/${item.id}/game-pass-product-info`);
+                        const detailData = await detailRes.json();
 
-                    return {
-                        id: item.id,
-                        name: item.name,
-                        price: valorPrecio, // Ahora intentará pillar cualquiera de los dos
-                        productId: item.productId,
-                        isForSale: item.isForSale
-                    };
-                });
-                allPasses = allPasses.concat(pasesMapeados);
+                        return {
+                            id: item.id,
+                            name: item.name,
+                            // Si la API de economía tiene el precio, lo usamos; si no, el de la lista original
+                            price: detailData.PriceInRobux || item.price || 0,
+                            productId: item.productId,
+                            isForSale: detailData.IsForSale || item.isForSale
+                        };
+                    } catch (e) {
+                        // Si falla la segunda API, devolvemos lo que tengamos
+                        return {
+                            id: item.id,
+                            name: item.name,
+                            price: item.price || 0,
+                            productId: item.productId,
+                            isForSale: item.isForSale
+                        };
+                    }
+                }));
+
+                allPasses = allPasses.concat(pasesConPrecioReal);
             }
-        } // Aquí termina el for correctamente
+        }
 
         res.json(allPasses);
 
