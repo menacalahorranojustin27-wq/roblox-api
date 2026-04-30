@@ -31,12 +31,19 @@ app.get("/getpasses", async (req, res) => {
                         const ecoRes = await fetch(`https://economy.roproxy.com/v1/game-pass/${item.id}/game-pass-product-info`);
                         const ecoData = await ecoRes.json();
                         
+                        const price =
+                            ecoData.PriceInRobux ??
+                            ecoData.priceInRobux ??
+                            item.price ??
+                            item.priceInRobux ??
+                            0;
+                        console.log("Respuesta economía:", ecoData);
                         return {
                             id: item.id,
                             name: item.name,
-                            price: ecoData.PriceInRobux || 0,
+                            price: price,
                             productId: item.productId,
-                            isForSale: ecoData.IsForSale
+                            isForSale: ecoData.IsForSale ?? item.isForSale ?? false
                         };
                     } catch (e) {
                         return null; // Si uno falla, lo ignoramos
