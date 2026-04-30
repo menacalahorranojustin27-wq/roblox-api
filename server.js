@@ -25,7 +25,7 @@ app.get("/getpasses", async (req, res) => {
         const passes = data.data.map(item => ({
             id: item.id,
             name: item.name,
-            price: item.price
+            price: item.price || 0
         }));
 
         res.json(passes);
