@@ -28,28 +28,28 @@ app.get("/getpasses", async (req, res) => {
                 // --- TRUCO DE VELOCIDAD: Preguntamos todos los precios A LA VEZ ---
                 const promesasPrecios = passesData.gamePasses.map(async (item) => {
                     try {
-                        const ecoRes = await fetch(`https://apis.roproxy.com/marketplace/productinfo?assetId=${item.id}`);
+                        const ecoRes = await fetch(`https://apis.roproxy.com/game-passes/v1/game-passes/${item.id}/product-info`);
                         const ecoData = await ecoRes.json();
                         console.log("Respuesta economía:", ecoData);
-                        const price =
-                            ecoData.PriceInRobux ??
-                            ecoData.priceInRobux ??
-                            item.price ??
-                            item.priceInRobux ??
-                            0;
                         
                         return {
                             id: item.id,
                             name: item.name,
-                            price: price,
+                            price: ecoData.PriceInRobux ?? 0,
                             productId: item.productId,
                             isForSale: ecoData.IsForSale ?? item.isForSale ?? false
                         };
-    } catch (e) {
-        console.error("Error con pase:", item.id, e);
-        return null;
-    }
-});
+                    } catch (e) {
+                        console.error("Error con pase:", item.id, e);
+                        return {
+                            id: item.id,
+                            name: item.name,
+                            price: 0,
+                            productId: item.productId,
+                            isForSale: item.isForSale ?? false
+                        };
+                    }
+                });
 
                 // Esperamos a que todas las preguntas de precios terminen juntas
                 const resultados = await Promise.all(promesasPrecios);
