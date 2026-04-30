@@ -8,53 +8,40 @@ app.get("/getpasses", async (req, res) => {
     if (!userId) return res.json({ error: "Falta el userId" });
 
     try {
-        // 1. Obtener los juegos del usuario (Esta API sigue funcionando igual)
+        // 1. Obtener juegos del usuario
         const gamesRes = await fetch(`https://games.roproxy.com/v2/users/${userId}/games?accessFilter=Public&limit=10`);
         const gamesData = await gamesRes.json();
 
-        if (!gamesData.data || gamesData.data.length === 0) {
-            return res.json([]);
-        }
+        if (!gamesData.data || gamesData.data.length === 0) return res.json([]);
 
         let allPasses = [];
 
-        // 2. Recorrer los juegos para buscar pases con la NUEVA API
-for (const game of gamesData.data) {
+        // 2. Recorrer juegos y buscar sus pases
+        for (const game of gamesData.data) {
             const universeId = game.id;
-
-            // 1. Obtenemos la lista de pases (esto ya te funciona)
             const passesRes = await fetch(`https://apis.roproxy.com/game-passes/v1/universes/${universeId}/game-passes?pageSize=100`);
             const passesData = await passesRes.json();
 
-            if (passesData && passesData.gamePasses) {
-                // 2. Para cada pase, vamos a "forzar" la lectura del precio real
-                const pasesConPrecioReal = await Promise.all(passesData.gamePasses.map(async (item) => {
+            if (passesData.gamePasses) {
+                // 3. Consultar el precio real de cada pase en la API de Economía
+                for (const item of passesData.gamePasses) {
                     try {
-                        // Consultamos la API de economía individual (la que no miente con el precio)
-                        const detailRes = await fetch(`https://economy.roproxy.com/v1/game-pass/${item.id}/game-pass-product-info`);
-                        const detailData = await detailRes.json();
+                        const ecoRes = await fetch(`https://economy.roproxy.com/v1/game-pass/${item.id}/game-pass-product-info`);
+                        const ecoData = await ecoRes.json();
 
-                        return {
+                        allPasses.push({
                             id: item.id,
                             name: item.name,
-                            // Si la API de economía tiene el precio, lo usamos; si no, el de la lista original
-                            price: detailData.PriceInRobux || item.price || 0,
+                            // Aquí está el truco: la API de economía usa 'PriceInRobux' con P mayúscula
+                            price: ecoData.PriceInRobux || 0,
                             productId: item.productId,
-                            isForSale: detailData.IsForSale || item.isForSale
-                        };
+                            isForSale: ecoData.IsForSale
+                        });
                     } catch (e) {
-                        // Si falla la segunda API, devolvemos lo que tengamos
-                        return {
-                            id: item.id,
-                            name: item.name,
-                            price: item.price || 0,
-                            productId: item.productId,
-                            isForSale: item.isForSale
-                        };
+                        // Si falla la economía, guardamos el pase con precio 0 para no trabar todo
+                        allPasses.push({ id: item.id, name: item.name, price: 0 });
                     }
-                }));
-
-                allPasses = allPasses.concat(pasesConPrecioReal);
+                }
             }
         }
 
