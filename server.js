@@ -10,11 +10,11 @@ app.get("/", (req, res) => {
 app.get("/getpasses", async (req, res) => {
     const userId = req.query.userId;
 
-    if (!userId) return res.json([]);
+    if (!userId) return res.json({ error: "Falta el userId" });
 
     try {
-        // 1. obtener juegos del usuario
-        const gamesRes = await fetch(`https://games.roblox.com/v2/users/{userId}/games?accessFilter=All&limit=50`);
+        // 1. Obtener juegos del usuario
+        const gamesRes = await fetch(`https://games.roblox.com/v2/users/${userId}/games?accessFilter=Public&limit=10`);
         const gamesData = await gamesRes.json();
 
         if (!gamesData.data || gamesData.data.length === 0) {
@@ -23,9 +23,12 @@ app.get("/getpasses", async (req, res) => {
 
         let allPasses = [];
 
-        // 2. recorrer TODOS los juegos
+        // 2. Recorrer los juegos usando universeId
         for (const game of gamesData.data) {
-            const universeId = game.id;
+            // CAMBIO CLAVE: Usamos game.universeId en lugar de game.id
+            const universeId = game.universeId; 
+
+            if (!universeId) continue;
 
             const passesRes = await fetch(`https://games.roblox.com/v1/games/${universeId}/game-passes?limit=100`);
             const passesData = await passesRes.json();
@@ -34,7 +37,8 @@ app.get("/getpasses", async (req, res) => {
                 const passes = passesData.data.map(item => ({
                     id: item.id,
                     name: item.name,
-                    price: item.price || 0
+                    price: item.price || 0,
+                    productId: item.productId // Útil por si necesitas procesar la compra
                 }));
 
                 allPasses = allPasses.concat(passes);
@@ -44,13 +48,12 @@ app.get("/getpasses", async (req, res) => {
         res.json(allPasses);
 
     } catch (err) {
-        console.log(err);
-        res.json([]);
+        console.error("Error en la petición:", err);
+        res.status(500).json({ error: "Error interno del servidor" });
     }
 });
 
 const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
     console.log("API corriendo en puerto " + PORT);
 });
