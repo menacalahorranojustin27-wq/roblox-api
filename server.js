@@ -15,7 +15,7 @@ app.get("/getpasses", async (req, res) => {
     if (!userId) return res.json([]);
 
     try {
-        const url = `https://catalog.roblox.com/v1/search/items/details?Category=3&CreatorId=${userId}&AssetType=Pass&Limit=30`;
+        const url = `https://games.roblox.com/v1/users/${userId}/game-passes?limit=100`;
 
         const response = await fetch(url);
         const data = await response.json();
