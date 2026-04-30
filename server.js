@@ -19,28 +19,22 @@ app.get("/getpasses", async (req, res) => {
         let allPasses = [];
 
         // 2. Recorrer los juegos para buscar pases con la NUEVA API
+// 2. Recorrer los juegos para buscar pases
         for (const game of gamesData.data) {
             const universeId = game.id;
 
-            // CAMBIO IMPORTANTE: Nueva URL de apis.roblox.com y parámetro pageSize
             const passesRes = await fetch(`https://apis.roproxy.com/game-passes/v1/universes/${universeId}/game-passes?pageSize=100`);
             const passesData = await passesRes.json();
 
-            // La nueva API devuelve "gamePasses" en lugar de "data"
-            // ... dentro del for de los juegos ...
-
-if (passesData.gamePasses && passesData.gamePasses.length > 0) {
-    const passes = passesData.gamePasses.map(item => ({
-        id: item.id,
-        name: item.name,
-        // Intentamos obtener el precio de varias formas por si Roblox cambia el nombre
-        price: item.priceInRobux || item.price || 0, 
-        productId: item.productId,
-        isForSale: item.isForSale // Esto nos dirá si realmente está a la venta
-    }));
-
-    allPasses = allPasses.concat(passes);
-}
+            if (passesData.gamePasses && passesData.gamePasses.length > 0) {
+                const passes = passesData.gamePasses.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    // Si 'price' es null o no existe, ponemos 0
+                    price: item.price || 0,
+                    productId: item.productId,
+                    isForSale: item.isForSale
+                }));
 
                 allPasses = allPasses.concat(passes);
             }
