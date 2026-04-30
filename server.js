@@ -15,18 +15,18 @@ app.get("/getpasses", async (req, res) => {
     if (!userId) return res.json([]);
 
     try {
-        const url = `https://games.roblox.com/v1/users/${userId}/game-passes?limit=100`;
+       const url = `https://catalog.roblox.com/v1/search/items/details?Category=3&CreatorId=${userId}&AssetType=Pass&Limit=30`;
 
         const response = await fetch(url);
         const data = await response.json();
 
         if (!data || !data.data) return res.json([]);
 
-        const passes = data.data.map(item => ({
-            id: item.id,
-            name: item.name,
-            price: item.price || 0
-        }));
+       const passes = data.data.map(item => ({
+           id: item.id,
+           name: item.name,
+           price: item.price || 0
+       }));
 
         res.json(passes);
 
