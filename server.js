@@ -3,30 +3,38 @@ const fetch = require("node-fetch");
 
 const app = express();
 
-// 🔥 Ruta principal (evita "Cannot GET /")
 app.get("/", (req, res) => {
     res.send("API Roblox funcionando 🚀");
 });
 
-// 🔥 GET PASSES
 app.get("/getpasses", async (req, res) => {
     const userId = req.query.userId;
 
     if (!userId) return res.json([]);
 
     try {
-       const url = `https://catalog.roblox.com/v1/search/items/details?Category=3&CreatorId=${userId}&AssetType=Pass&Limit=30`;
+        // 1. obtener juegos del usuario
+        const gamesRes = await fetch(`https://games.roblox.com/v2/users/${userId}/games?accessFilter=Public&limit=10`);
+        const gamesData = await gamesRes.json();
 
-        const response = await fetch(url);
-        const data = await response.json();
+        if (!gamesData.data || gamesData.data.length === 0) {
+            return res.json([]);
+        }
 
-        if (!data || !data.data) return res.json([]);
+        // 2. tomar el primer juego
+        const universeId = gamesData.data[0].id;
 
-       const passes = data.data.map(item => ({
-           id: item.id,
-           name: item.name,
-           price: item.price || 0
-       }));
+        // 3. obtener game passes
+        const passesRes = await fetch(`https://games.roblox.com/v1/games/${universeId}/game-passes?limit=100`);
+        const passesData = await passesRes.json();
+
+        if (!passesData.data) return res.json([]);
+
+        const passes = passesData.data.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price || 0
+        }));
 
         res.json(passes);
 
@@ -36,7 +44,6 @@ app.get("/getpasses", async (req, res) => {
     }
 });
 
-// 🔥 IMPORTANTE para Render
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
