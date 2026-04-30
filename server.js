@@ -27,14 +27,20 @@ app.get("/getpasses", async (req, res) => {
             const passesData = await passesRes.json();
 
             // La nueva API devuelve "gamePasses" en lugar de "data"
-            if (passesData.gamePasses && passesData.gamePasses.length > 0) {
-                const passes = passesData.gamePasses.map(item => ({
-                    id: item.id,
-                    name: item.name,
-                    price: item.price || 0,
-                    productId: item.productId,
-                    icon: item.iconId
-                }));
+            // ... dentro del for de los juegos ...
+
+if (passesData.gamePasses && passesData.gamePasses.length > 0) {
+    const passes = passesData.gamePasses.map(item => ({
+        id: item.id,
+        name: item.name,
+        // Intentamos obtener el precio de varias formas por si Roblox cambia el nombre
+        price: item.priceInRobux || item.price || 0, 
+        productId: item.productId,
+        isForSale: item.isForSale // Esto nos dirá si realmente está a la venta
+    }));
+
+    allPasses = allPasses.concat(passes);
+}
 
                 allPasses = allPasses.concat(passes);
             }
