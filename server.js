@@ -21,22 +21,27 @@ app.get("/getpasses", async (req, res) => {
             return res.json([]);
         }
 
-        // 2. tomar el primer juego
-        const universeId = gamesData.data[0].id;
+        let allPasses = [];
 
-        // 3. obtener game passes
-        const passesRes = await fetch(`https://games.roblox.com/v1/games/${universeId}/game-passes?limit=100`);
-        const passesData = await passesRes.json();
+        // 2. recorrer TODOS los juegos
+        for (const game of gamesData.data) {
+            const universeId = game.id;
 
-        if (!passesData.data) return res.json([]);
+            const passesRes = await fetch(`https://games.roblox.com/v1/games/${universeId}/game-passes?limit=100`);
+            const passesData = await passesRes.json();
 
-        const passes = passesData.data.map(item => ({
-            id: item.id,
-            name: item.name,
-            price: item.price || 0
-        }));
+            if (passesData.data && passesData.data.length > 0) {
+                const passes = passesData.data.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    price: item.price || 0
+                }));
 
-        res.json(passes);
+                allPasses = allPasses.concat(passes);
+            }
+        }
+
+        res.json(allPasses);
 
     } catch (err) {
         console.log(err);
