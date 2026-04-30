@@ -28,18 +28,24 @@ app.get("/getpasses", async (req, res) => {
 
             if (passesData && passesData.gamePasses) {
                 const pasesMapeados = passesData.gamePasses.map(item => {
-                    // Intentamos capturar el precio de cualquier lugar donde Roblox lo esconda
-                    const realPrice = item.price !== null && item.price !== undefined ? item.price : (item.priceInRobux || 0);
+                    // Roblox es caprichoso: a veces es 'price', a veces 'priceInRobux'
+                    // Aquí buscamos en ambos campos y nos aseguramos de que no sea null
+                    let valorPrecio = 0;
                     
+                    if (item.price !== null && item.price !== undefined && item.price > 0) {
+                        valorPrecio = item.price;
+                    } else if (item.priceInRobux !== null && item.priceInRobux !== undefined) {
+                        valorPrecio = item.priceInRobux;
+                    }
+
                     return {
                         id: item.id,
                         name: item.name,
-                        price: realPrice,
+                        price: valorPrecio, // Ahora intentará pillar cualquiera de los dos
                         productId: item.productId,
                         isForSale: item.isForSale
                     };
                 });
-
                 allPasses = allPasses.concat(pasesMapeados);
             }
         } // Aquí termina el for correctamente
