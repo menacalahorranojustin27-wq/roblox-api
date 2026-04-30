@@ -14,11 +14,17 @@ app.get("/getpasses", async (req, res) => {
         const gamesRes = await fetch(`https://games.roblox.com/v2/users/${userId}/games?accessFilter=Public&limit=50`);
         const gamesData = await gamesRes.json();
 
+        if (!gamesData.data) return res.json([]);
+
         for (const game of gamesData.data) {
-            const placeId = game.id;
+
+            const placeId = game.rootPlaceId;
+            if (!placeId) continue;
 
             const passRes = await fetch(`https://games.roblox.com/v1/games/${placeId}/game-passes?limit=50`);
             const passData = await passRes.json();
+
+            if (!passData.data) continue;
 
             for (const pass of passData.data) {
                 passes.push({
